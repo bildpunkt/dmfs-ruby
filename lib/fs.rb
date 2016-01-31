@@ -1,5 +1,6 @@
 require 'json'
 require 'base64'
+require 'base65536'
 
 module DMFS
   def self.create_message(filename)
@@ -9,28 +10,32 @@ module DMFS
       b64 = Base64.encode64(f.read).gsub("\n", '')
     end
 
+    # Step 1.5 Convert Base64 to Base65536
+    # because Base65536 can't handle files
+    b65536 = Base65536.encode(b64.bytes)
+
     # Step 2: Calculate maximum length of Base64 string
     rl = 10000 - (File.basename(filename).length + 31)
 
     # Step 3: Check length of Base64 string and split if necessary
-    b64s = b64.scan(/.{1,#{rl}}/)
+    b65536s = b65536.scan(/.{1,#{rl}}/)
 
     # Step 4: Create messages
     messages = []
-    b64sc = 0
+    b65536sc = 0
 
-    if b64s.count == 1
-      b64sc = 0
+    if b65536s.count == 1
+      b65536sc = 0
     else
-      b64sc = b64s.count - 1
+      b65536sc = b65536s.count - 1
     end
 
-    b64s.each do |string|
+    b65536s.each do |string|
       messages << "!!DMFS" + {'fn' => File.basename(filename),
-                              'pt' => b64sc,
+                              'pt' => b65536sc,
                               'ct' => string
       }.to_json
-      b64sc -= 1
+      b65536sc -= 1
     end
 
     return messages
@@ -50,7 +55,7 @@ module DMFS
     parts = $file_parts[file_name]
     bae64 = parts.sort{|a, b| a[0] <=> b[0]}.map{|x| x[1]} * ''
     File.open "#{$config['folders']['download']}/#{file_name}", 'wb' do |f|
-      f.write Base64.decode64 bae64
+      f.write Base65536.decode(Base64.decode64(bae64))
     end
     file_name
   end

@@ -62,7 +62,7 @@ def main
     end
   end
 
-  #@shell.join
+  @shell.join
   @twitter.join
 end
 
